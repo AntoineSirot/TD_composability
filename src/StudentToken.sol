@@ -3,16 +3,15 @@ pragma solidity ^0.8.21;
 pragma abicoder v2;
 
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import 'uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import 'uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import "v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "v3-periphery/contracts/libraries/TransferHelper.sol";
 
 import {IStudentToken} from "./IStudentToken.sol";
 
 contract StudentToken is ERC20, IStudentToken {
-
     address public RewardToken = 0x56822085cf7C15219f6dC404Ba24749f08f34173;
     address public EvaluatorToken = 0x5cd93e3B0afBF71C9C84A7574a5023B4998B97BE;
-    uint public poolFee = 3000;  // Fee at 0.3%
+    uint public poolFee = 3000; // Fee at 0.3%
 
     ISwapRouter public immutable swapRouter;
     uint public INITIAL_SUPPLY = 100000000000000000000000000;
@@ -30,17 +29,28 @@ contract StudentToken is ERC20, IStudentToken {
 
     function createLiquidityPool() external {}
 
-    function SwapRewardToken(uint256 amountOut, uint256 amountInMaximum) external returns (uint256 amountIn) {
-
+    function SwapRewardToken(
+        uint256 amountOut,
+        uint256 amountInMaximum
+    ) external returns (uint256 amountIn) {
         // Transfer the specified amount of EvaluatorToken to this contract.
-        TransferHelper.safeTransferFrom(EvaluatorToken, msg.sender, address(this), amountInMaximum);
+        TransferHelper.safeTransferFrom(
+            EvaluatorToken,
+            msg.sender,
+            address(this),
+            amountInMaximum
+        );
 
         // Approve the router to spend the specifed `amountInMaximum` of EvaluatorToken.
         // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
-        TransferHelper.safeApprove(EvaluatorToken, address(swapRouter), amountInMaximum);
+        TransferHelper.safeApprove(
+            EvaluatorToken,
+            address(swapRouter),
+            amountInMaximum
+        );
 
-        ISwapRouter.ExactOutputSingleParams memory params =
-            ISwapRouter.ExactOutputSingleParams({
+        ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter
+            .ExactOutputSingleParams({
                 tokenIn: EvaluatorToken,
                 tokenOut: RewardToken,
                 fee: poolFee,
@@ -58,7 +68,11 @@ contract StudentToken is ERC20, IStudentToken {
         // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the msg.sender and approve the swapRouter to spend 0.
         if (amountIn < amountInMaximum) {
             TransferHelper.safeApprove(EvaluatorToken, address(swapRouter), 0);
-            TransferHelper.safeTransfer(EvaluatorToken, msg.sender, amountInMaximum - amountIn);
+            TransferHelper.safeTransfer(
+                EvaluatorToken,
+                msg.sender,
+                amountInMaximum - amountIn
+            );
         }
 
         return amountIn;
