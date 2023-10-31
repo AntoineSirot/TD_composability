@@ -38,3 +38,10 @@ BONUS:
 Deployed Addresses on goerli:
 - [Evaluator contract](https://goerli.etherscan.io/address/0x5cd93e3B0afBF71C9C84A7574a5023B4998B97BE)
 - [Reward contract](https://goerli.etherscan.io/address/0x56822085cf7C15219f6dC404Ba24749f08f34173)
+
+# Beginning of the solution : 
+## How to load the variables in the .env file
+source .env
+
+## How to deploy and verify our contract
+forge script script/Deployment.sol:DeploymentScript --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv
