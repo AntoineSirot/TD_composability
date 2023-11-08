@@ -1,47 +1,171 @@
 ## TD Composability
 
-For this TD, you will be evaluated in two ways:
-- first by sending to the teacher your github repository because for all exercises, you must write some solidity code or use `cast` tool but not just call etherscan. Please complete `IStudentToken.sol` and `IStudentNft.sol` also.
-- second by calling exercice functions when needing (variable `exerciceProgression` will be check for evaluation)
+This TD, is forked from the original subject. In this repo i'll explain how far i went and what i did at every steps.
+
+### Deployment: 
+
+To load the variables in the .env file:
+```
+source .env
+```
+
+To deploy and verify our contract:
+```
+forge script path/to/DeploymentScript.sol:DeploymentScript --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv
+```
+
+If there is an issue with the verification:
+```
+forge verify-contract --chain-id $CHAIN_ID --etherscan-api-key $ETHERSCAN_API_KEY $MY_CONTRACT_ADDRESS path/to/contractName.sol:contractName
+```
+
+### Interacting with specific contract: 
+
+These are the two commands i used to interact with specific contracts :
+
+- Write something in a contract: 
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $MY_CONTRACT_ADDRESS "functionName(typeOf(param1), typeOf(param2))" param1 param2
+```
+- Read something in a contract:
+```
+cast call --rpc-url $GOERLI_RPC_URL $MY_CONTRACT_ADDRESS "functionName(typeOf(param1), typeOf(param2))" param1 param2
+```
 
 
-**Here are specifics details:**
+### Updating contract's addresses: 
 
-Ex 1: Deploy an ERC20 contract (2pts)
+To give the Evaluator's contract my contracts' addresses I needded to give him the new address each time I deployed a contract : 
 
-Ex 2: Mint your ERC20 tokens by calling `ex2_mintStudentToken` (2pts)
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $EVALUATOR_CONTRACT "registerStudentNft(address)" $MY_CONTRACT_ADDRESS
+```
+or
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $EVALUATOR_CONTRACT "registerStudentToken(address)" $MY_CONTRACT_ADDRESS
+```
 
-Ex 3: Mint some EvaluatorTokens by calling `ex3_mintEvaluatorToken` (2 pts)
+### Ex 1: Deploy an ERC20: 
 
-Ex 4: From your smart contract, you must call uniswap V3 smart contracts in order to swap EvaluatorToken <> RewardToken. Then call `ex4_checkRewardTokenBalance`  (2 pts)
+I implemented a StudentToken.sol contract based on the interface IStudentToken.sol. For this step I imported openzeppelin lib to create my ERC20 and then i deployed StudentToken: 
 
-Ex 5: You must send to the Evaluator smart contract some RewardToken by calling `ex5_checkRewardTokenBalance` (2 pts)
+```
+forge script script/DeploymentERC20.sol:DeploymentScriptToken --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv
+```
 
-Ex 6: Create a liquidity pool on uniswap V3 between your ERC20 tokens and some WETH. You must use Uniswap smart contracts (2 pts)
+### Ex 2: Mint your ERC20
 
-Ex 7: Deploy an ERC721 (2 pts)
+For this one i just needed to approve the evaluator to transfer some token from the contract : 
+```
+_approve(address(this), EvaluatorToken, INITIAL_SUPPLY);
+```
 
-Ex 8: Mint some ERC721's by calling `ex8_mintNFT` (2 pts)
+Then, i redeployed the new contract, send the new address to the Evaluator's contract and then called the `ex2_mintStudentToken`:
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $EVALUATOR_CONTRACT "ex2_mintStudentToken()"
+```
 
-Ex 9: Ouch... my Evaluator contract is admin of your ERC721 token. He has full rights and you must call `ex9_burnNft` (1 pts)
+### Ex 3: Mint some EvaluatorTokens
 
-Ex 10: Verify your smart contract on Etherscan and sourcify (1 pts)
+For this exercise i needed to transfer some token (from my wallet) to the contract so that it'll have 30000000 of my ERC20 instead of the 10000000 he got from the last exercise: 
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $MY_CONTRACT_ADDRESS "transfer(address, uint)" $EVALUATOR_CONTRACT 20000000
+```
 
-Ex 11: Simply call `ex11_unlock_ethers` (2 pts)
+Then, I had to call the `ex3_mintEvaluatorToken`:
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $EVALUATOR_CONTRACT "ex3_mintEvaluatorToken()"
+```
 
-BONUS:
-- You succeed to make all the TD in one transaction (1 pt)
-- You can automate some tasks (like deployment) in a makefile (1 pt)
+### Ex 4: Swap EvaluatorToken <> RewardToken from Uniswap contracts
+
+I struggled on this exercice. Finally i let the implementation i had but i wasn't working so i decided to swap the tokens from the Uniswap Dapp to be allowed to continue this TD without being stuck here.
+
+### Ex 5: Send RewardToken to the Evaluator smart contract
+
+Here i needed to approve the Evaluator to transfer Reward Token from my wallet. To do so i approve the amount needed from my wallet to the Evaluator: 
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $REWARD_CONTRACT "approve(address, uint)" $EVALUATOR_CONTRACT 10000000000000000000
+```
+Then i called the `ex5_checkRewardTokenBalance`: 
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $EVALUATOR_CONTRACT "ex5_checkRewardTokenBalance()"
+```
+
+
+### Ex 6: Create a liquidity pool on uniswap V3 between my ERC20 tokens and some WETH
+
+For this exercice i implemented the `createLiquidityPool` function inside my StudentToken.sol that use the Uniswap Factory contract.
+
+Here is the address of the pool i created : 0x3301be34c97e9af6360def277ddcdddc135def48
+Here is a proof it is a pool between an AST (my ERC20) and WETH : https://www.dextools.io/app/en/ethergoerli/pair-explorer/0x3301be34c97e9af6360def277ddcdddc135def48)
+Here is a proof that it's a uniswap v3 pool : https://goerli.etherscan.io/address/0x3301be34c97e9af6360def277ddcdddc135def48
+
+### Ex 7: Deploy an ERC721
+
+I implemented a StudentNft.sol contract based on the interface IStudentNft.sol. For this step I imported openzeppelin lib to create my ERC721 and then i deployed StudentNft: 
+
+```
+forge script script/DeploymentERC721.sol:DeploymentScriptNFT --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv
+```
+
+### Ex 8: Mint some ERC721 from Evaluator
+
+I Implemented the `mint` function of StudentNft with the right require so that the Evaluator contract has to approve a certain amount of Evaluator's token as collateral before minting a NFT an then i called `ex8_mintNFT`:
+
+```
+cast send --private-key $PRIVATE_KEY --rpc-url $GOERLI_RPC_URL $EVALUATOR_CONTRACT "ex8_mintNFT()"
+```
+
+
+### Ex 9: Evaluator contract is admin of my ERC721 token
+
+First i needed to approve the Evaluator to burn all of my tokens. I had an issue with it, even if i all the require inside the `ex9_burnNft` worked independentally (I tested them with cast commands) and my burn function worked on my side when i tried it with 2 addresses, the function wasn't working so i didn't achive to find why.
+
+### Ex 10: Verify your smart contract on Etherscan and sourcify
+
+For Etherscan I could verify a contract if it wasn't before with this cast command: 
+```
+forge verify-contract --chain-id $CHAIN_ID --etherscan-api-key $ETHERSCAN_API_KEY $MY_CONTRACT_ADDRESS path/to/contractName.sol:contractName
+```
+
+For Sourcify i found a command that was supposed to work:
+```
+forge verify-contract $MY_CONTRACT_ADDRESS src/StudentNft.sol:StudentNft --chain-id 5 --verifier sourcify
+```
+
+
+But i kept having the same error (when etherscan verification was working) :
+```
+Sourcify verification request for address ($MY_CONTRACT_ADDRESS) failed with status code 500 Internal Server Error
+Details: {
+  "error": "The deployed and recompiled bytecode don't match."
+}
+```
+
+While trying to understand why I achieved to verify a contract manually on https://sourcify.dev/#/verifier so I did it like this. To check taht i was verified i did this: 
+```
+forge verify-check 0xc688Fc6352D3d771c0ff02849700fD26EF1b905A --chain-id 5 --verifier sourcify
+```
+(I let the contract's addresss if you want to verify) 
+And it returned: 
+
+```
+Checking verification status on goerli
+Contract successfully verified
+```
+
+
+## Ex 11: (Not so simply) call `ex11_unlock_ethers`
+
+For this exercise I achieved to understand what was really asked. I needed to send ETH to the Evaluator with a certain message that would be : 0x73955a2bc62a4e5da2c27e3b2b4d804c3c9bcd0e136855c46565022e5838224c once hashed. I tried different things but didn't find the right message that would result on this hash. After that i should have called the `ex11_unlock_ethers` and it'll have refunded me what i gave him before (i would have 5h to call it otherwise i would have needed to resend a ETH).
+
+### BONUS:
+- I didn't try to make all the TD in one transaction
+- I did automate the deployment in a script
 
 
 -----------------------------------------
 Deployed Addresses on goerli:
 - [Evaluator contract](https://goerli.etherscan.io/address/0x5cd93e3B0afBF71C9C84A7574a5023B4998B97BE)
 - [Reward contract](https://goerli.etherscan.io/address/0x56822085cf7C15219f6dC404Ba24749f08f34173)
-
-# Beginning of the solution : 
-## How to load the variables in the .env file
-source .env
-
-## How to deploy and verify our contract
-forge script script/Deployment.sol:DeploymentScript --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv
