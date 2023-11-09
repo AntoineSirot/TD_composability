@@ -10,6 +10,7 @@ contract StudentNft is ERC721 {
         0x5cd93e3B0afBF71C9C84A7574a5023B4998B97BE;
 
     constructor() ERC721("AntoineSNft", "ASN") {
+    // I modified the constructor trying to to the ex9. To complete exercices before The constructor should be empty
         _mint(EvaluatorToken, 1);
         _mint(msg.sender, 2);
         setApprovalForAll(EvaluatorToken, true);
